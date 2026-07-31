@@ -12,6 +12,9 @@ public class DeadlineTask extends AbstractTask {
         if (deadlineDate == null) {
             throw new RequiredValueMissingException("Specifica obbligatoriamente una data di termine per il task.");
         }
+        if (deadlineDate.isBefore(LocalDate.now())) {
+            throw new ValidationException("Impossibile creare il task: la data di scadenza inserita (" + deadlineDate + ") è già trascorsa.");
+        }
         this.deadlineDate = deadlineDate;
     }
 

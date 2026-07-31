@@ -1,8 +1,10 @@
 import entities.*;
 import exceptions.RequiredValueMissingException;
 import exceptions.ValidationException;
+import services.TaskManager;
 
 import java.time.LocalDate;
+import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
@@ -25,7 +27,6 @@ public class Main {
 
         System.out.println("\n--- Simulazione di creazione fallita (Dati invalidi) ---");
         try {
-            // Passo una stringa vuota per far scattare l'eccezione
             SimpleTask invalidTask = new SimpleTask("ERR-99", "", Priority.HIGH, -50);
         } catch (RequiredValueMissingException e) {
             System.out.println("Ottimo, blocco per campo obbligatorio funzionante: " + e.getMessage());
@@ -45,8 +46,8 @@ public class Main {
         }
 
         System.out.println();
-        DeadlineTask overdueTask = new DeadlineTask("TSK-OLD", "Rinnovo licenza software", Priority.HIGH, 15, LocalDate.now().minusDays(3));
         try {
+            DeadlineTask overdueTask = new DeadlineTask("TSK-OLD", "Rinnovo licenza software", Priority.HIGH, 15, LocalDate.now().minusDays(3));
             overdueTask.executeTask();
         } catch (ValidationException e) {
             System.out.println("Controllo su DeadlineTask superato: " + e.getMessage());
@@ -57,5 +58,42 @@ public class Main {
         meetingTask.executeTask();
         meetingTask.executeTask();
         System.out.println("Riepilogo finale del task ripetitivo: " + meetingTask);
+
+        System.out.println("\n>>> FASE C: TEST DEL TASK MANAGER E FUNZIONI STREAM <<<");
+        TaskManager manager = new TaskManager();
+
+        try {
+            manager.addTask(new SimpleTask("MGR-01", "Aggiornamento server", Priority.HIGH, 60));
+            manager.addTask(new DeadlineTask("MGR-02", "Dichiarazione redditi", Priority.HIGH, 180, LocalDate.now().plusDays(10)));
+            manager.addTask(new RecurringTask("MGR-03", "Pulizia log database", Priority.LOW, 15, 1));
+
+            System.out.println("\n--- Test inserimento duplicato ---");
+            manager.addTask(new SimpleTask("MGR-01", "Task clone", Priority.MEDIUM, 30));
+        } catch (ValidationException e) {
+            System.out.println("Errore intercettato dal Manager: " + e.getMessage());
+        }
+
+        try {
+            System.out.println("\n--- Test ricerca per priorità (HIGH) ---");
+            List<AbstractTask> highPriorityTasks = manager.findByPriority(Priority.HIGH);
+            highPriorityTasks.forEach(t -> System.out.println("Trovato: " + t.getTitle()));
+
+            System.out.println("\n--- Test completamento tramite Manager ---");
+            manager.completeTask("MGR-01");
+
+            System.out.println("\n--- Test statistiche ---");
+            manager.printStatistics();
+
+            System.out.println("--- Test rimozione task ---");
+            manager.removeTask("MGR-03");
+
+            System.out.println("\n--- Test manipolazione codice inesistente ---");
+            manager.completeTask("GHOST-999");
+
+        } catch (ValidationException e) {
+            System.out.println("Errore intercettato dal Manager: " + e.getMessage());
+        }
+
+        manager.printStatistics();
     }
 }
